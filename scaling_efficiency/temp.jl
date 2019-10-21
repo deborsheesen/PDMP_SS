@@ -1,6 +1,6 @@
 using Distributions, TimeIt, ProgressMeter, PyPlot
-include("zz_structures.jl")
-include("mbsampler.jl")
+include("/home/postdoc/dsen/Desktop/Biometrika-code/zz_structures.jl")
+include("/home/postdoc/dsen/Desktop/Biometrika-code/mbsampler.jl")
 
 
 #prob_het = 0.95
