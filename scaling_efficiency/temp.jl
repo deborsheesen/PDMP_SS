@@ -88,11 +88,11 @@ end
             
             
 
-function run_sampler(gs_list, my_model, max_attempts, adapt_speed="none")
+function run_sampler(gs_list, my_model, max_attempts, adapt_speed="none", Print=true)
 
     d, Nobs = size(my_model.ll.X)
     A = eye(d)
-    opf = projopf(A, 1000, hyperparam_size(my_model.pr))
+    opf = projopf(A, 1000)
     opt = maxa_opt(max_attempts)
     outp = outputscheduler(opf,opt)
     mstate = zz_state(d)
@@ -104,7 +104,7 @@ function run_sampler(gs_list, my_model, max_attempts, adapt_speed="none")
     
     L = 2
     my_zz_sampler = zz_sampler_decoupled(0, gs_list, bb_pr, bb_ll, L, adapt_speed)
-    ZZ_sample_decoupled(my_model, outp, my_zz_sampler, mstate);
+    ZZ_sample_decoupled(my_model, outp, my_zz_sampler, mstate, Print);
     
     bb_pr, bb_ll, mstate = nothing, nothing, nothing 
     gc()
@@ -167,13 +167,7 @@ function get_acfs(samples, maxlag)
 end
 
 function generate_model(d, Nobs, pX, cov_dist="Gaussian", prior_sigma=1., intercept=true) 
-    X = sprand(d, Nobs, pX)
-    
-    for i in 1:d 
-        while length(X[i,:].nzind) == 0 
-            X[i,:] = sprandn(Nobs,pX) 
-        end
-    end
+    X = sprandn(d, Nobs, pX)
     
     for i in 1:d 
         nzind = X[i,:].nzind
@@ -201,10 +195,12 @@ function generate_model(d, Nobs, pX, cov_dist="Gaussian", prior_sigma=1., interc
     return my_model, root
 end
 
-function run_mbsamplers(my_model, root, mb_size, max_attempts, pX, Nobs, varying, rep, cov_dist, include_CV=false, include_stratified=false, adapt_speed="none")
+function run_mbsamplers(my_model, root, mb_size, max_attempts, pX, Nobs, varying, rep, cov_dist, include_CV=false, include_stratified=false, adapt_speed="none", include_uniform_SS=false, Print=true)
     opfs = []
-    wt = [true]
-    sr, cv = [false], [false]
+    wt, sr, cv = [true], [false], [false]
+    if include_uniform_SS 
+        wt = [true,false]
+    end
     if include_CV 
         cv = [true,false]
     end
@@ -220,7 +216,7 @@ function run_mbsamplers(my_model, root, mb_size, max_attempts, pX, Nobs, varying
             for weighted in wt
                 start = time()
                 gs_list = sampler_list(my_model, root, mb_size, stratified, CV, weighted)
-                opf = run_sampler(gs_list, my_model, max_attempts, adapt_speed)
+                opf = run_sampler(gs_list, my_model, max_attempts, adapt_speed, Print)
                 if varying == "pX" 
                     filename  = "/xtmp/PDMP_data_revision/"*subfolder*"/cov_dist:"*cov_dist*"-pX:"*string(pX)*"-rep:"*string(rep)*"-stratified:"*string(stratified)*"-CV:"*string(CV)*"-weighted:"*string(weighted)*"-d:"*string(d)*".jld"
                 elseif varying == "Nobs" 
